@@ -1,0 +1,142 @@
+
+<section data-markdown><script type="text/template" >
+
+### FHIR Data Nature
+---
+
+* Resources - DDD Aggregates
+* Generalized
+* Extensible 
+
+</script></section>
+
+
+<section data-markdown><script type="text/template" >
+
+### > 200 Resource 
+
+---
+
+![](rss.png)
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+
+### Resource 
+
+---
+
+![](ddd.png)
+
+---
+
+[DDD Aggregate](https://martinfowler.com/bliki/DDD_Aggregate.html)
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+
+### Generalized
+
+---
+
+```yaml
+resourceType: Patient
+id: pt-1
+identifier:
+- value: '12345'
+  system: mrn
+- value: '12345'
+  system: ssn
+telecom:
+- use: home
+- system: phone
+  value: "(03) 5555 6473"
+  use: work
+- system: phone
+  value: "(03) 3410 5613"
+  use: mobile
+- system: phone
+  value: "(03) 5555 8834"
+  use: old
+
+```
+
+---
+
+Patient.identifier & telecom
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+
+### Generalized
+
+---
+
+```yaml
+resourceType: 'Observation'
+code:
+  coding:
+  - system: 'http://loinc.org'
+    code: '15074-8'
+    display: 'Glucose [Moles/volume] in Blood'
+valueQuantity:
+  value: 6.3
+  unit: 'mmol/l'
+```
+
+---
+
+Observation/Glucose
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+
+### Generalized
+
+---
+
+```yaml
+resourceType: Observation
+code:
+  coding:
+  - system: http://loinc.org
+    code: 29463-7
+    display: Body Weight
+valueQuantity:
+  value: 185
+  unit: lbs
+
+```
+---
+
+Observation/Body Weight
+
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Extensible
+
+---
+
+```yaml
+resourceType: Patient
+extension:
+- url: http://...patient-citizenship
+  extension:
+  - url: code
+    valueCodeableConcept:
+      coding:
+      - system: urn:iso:std:iso:3166
+        code: DE
+  - url: period
+    valuePeriod:
+      start: '2009-03-14'
+
+```
+
+</script></section>

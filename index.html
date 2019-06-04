@@ -57,109 +57,426 @@ Nikolai Ryzhikov @ Health Samurai
 
 
 <section data-markdown><script type="text/template" >
+### FHIR-native & FHIR-first
+
+---
+
+Use FHIR as platform to build next-generation
+systems
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
 ### FHIR Persistence?
 
 ---
 How to store & query FHIR resources?
 </script></section>
 
-
 <section data-markdown><script type="text/template" >
 
-### FHIR Data Nature
+### SQL/Relational DBs
+
 ---
 
-* Resources - DDD Aggregates (documents)
-* Extensible 
+![](pt.png)
 
 </script></section>
 
 <section data-markdown><script type="text/template" >
+### SQL/Relational DBs
 
-### Legacy vs New
+----
+
+
+```sql
+CREATE TABLE patient (id, birthDate,...);
+CREATE TABLE patient_name (pid, family, use, given?...);
+CREATE TABLE patient_telecom (pid, system, value ...)
+CREATE TABLE patient_address (pid, city...);
+CREATE TABLE patient_photo (pid, ...);
+CREATE TABLE patient_contact (pid, ...);
+CREATE TABLE patient_contact_name (pid, p_cid ...);
+CREATE TABLE patient_contact_address (pid, p_cid ...);
+CREATE TABLE patient_communication (pid, ...);
+.....
+
+```
 ---
 
-* Legacy - existing db
-* New - FHIR First systems
-
+Normal form?  > 1000 tables 
 </script></section>
 
-
 <section data-markdown><script type="text/template" >
+### SQL/Relational DBs
 
-### FHIR Legacy
 ---
 
-* Read only access - easy
-* Write - only with restrictive profiling
+
+```sql
+SELECT *
+  FROM patient
+  JOIN patient_name 
+  JOIN patient_telecom
+  JOIN patient_address 
+  JOIN patient_photo
+  JOIN patient_contact
+  JOIN patient_contact_name
+  JOIN patient_contact_address
+  JOIN patient_communication
+  .....
+
+```
+---
+DBs 10x inserts and joins
 
 </script></section>
 
 <section data-markdown><script type="text/template" >
+### Popular schema  - save blob!
 
-### Technology
 ---
 
-* SQL/Relational
-* Document DB
-* SQL + Document Hybrid
-* Others 
+```
+create table resource (id, resource blob,...);
+create table string_idx(res_id, value, ...);
+create table date_idx(res_id, value, ...);
+create table token_idx(res_id, value, ...);
+```
+---
+
+Grahame's Server, HAPI JPA, Vonk, MS FHIR
 
 </script></section>
 
 <section data-markdown><script type="text/template" >
-### Tables?
+### Search Params
+---
+
+```yaml
+resourceType: "SearchParameter"
+id: "Patient.phone"
+name: "phone"
+type: "token"
+expression: "Patient.telecom.where(system='phone')"
+
+```
+
+---
+[Patient Search Params](https://www.hl7.org/fhir/patient.html#search)
+
 </script></section>
 
 <section data-markdown><script type="text/template" >
-### Documents?
+### How FHIR search works
+----
+
+```
+filter: r in resources
+   every: sp in search-params
+     extract(r, sp.expr) op val
+
+```
+
 </script></section>
 
 <section data-markdown><script type="text/template" >
-### Hybrid?
+
+### Materilized Indexing
+---
+
+1. write resource blob
+2. eval search param
+3. write sp table
+4. build db idx
+
 </script></section>
 
 <section data-markdown><script type="text/template" >
-### fhirbase
+![](indexing.png)
 </script></section>
 
+<section data-markdown><script type="text/template" >
+### GET /Patient?phone=123
+
+---
+
+```sql
+SELECT resource
+FROM resource r
+JOIN token_idx s1
+  ON s1.res_id = id AND s1.name = 'phone'
+WHERE
+ r.type = 'Patient'
+ AND s1.value = '123'
+
+```
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+![](reindex.png)
+</script></section>
+
+<section data-markdown><script type="text/template" >
+
+### Store 3 times!
+
+---
+
+* as blob
+* as search param entry
+* as db idx
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Too much Joins
+
+---
+
+```
+GET /Patient?
+ name=john&
+ birthDate=lt1870&
+ address=LA&
+ ...
+ &_sort=birthDate
+```
+
+
+```sql
+SELECT resource
+ FROM resource r
+ JOIN string_idx s1
+ JOIN date_idx d1
+ JOIN address_idx d1
+WHERE ...
+SORT BY d1.value
+
+```
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+###  Performance & selecitvity
+---
+
+![](selectivity.png)
+
+</script></section>
+
+
+<section data-markdown><script type="text/template" >
+### Document databases?
+
+---
+
+* monogodb
+* couchdb
+
+</script></section>
+
+
+<section data-markdown><script type="text/template" >
+### MongoDB
+
+---
+
+```
+db.Patient.find( {
+     status: active,
+     $or: [ { birthDate: { $lt: 1980 } } ]
+})
+```
+--- 
+
+Search in db
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Document DBs +
+
+---
+
+* resources fit docs
+* in db search
+* clusters out of the box
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Document DBs -
+
+---
+
+* not mature as relational
+* transactional interity
+* query expressivenes (SQL)
+
+---
+
+but it's changing
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Hybride: JSON + SQL
+---
+
+best of both worlds
+
+---
+
+JSON path in latest [SQL standard](https://obartunov.livejournal.com/200076.html)
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### fhirbase/aidbox
+
+---
+
+* PostgreSQL only
+* JSONB
+* Functional Indexes
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### fhirbase/aidbox schema
+
+---
+
+```
+CREATE TABLE patient (
+  id text primary key,
+  resource jsonb
+  ...
+);
+
+CREATE TABLE encounter (
+  id text primary key,
+  resource jsonb
+  ...
+);
+```
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### fhirbase/aidbox search
+
+---
+
+```
+SELECT * FROM patient
+WHERE
+  timestamp(res->>'birthDate') > '1950' 
+  AND timestamp(res->>'birthDate') > '1950' 
+  AND extract(res, 'identifier.where(system = "mrn"))' = '1234'
+
+```
+---
+search expressions in db
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Functional Indices
+
+---
+
+```
+CREATE index patient_mrn_idx
+ON patient GIN (
+  extract(resource, 'identifier.where(system = "mrn"))'
+);
+```
+---
+
+* jsonknife
+* jsquery
+* jsnonpath
+* fhirpath.pg (betta)
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+
+### Indexing in DB
+---
+![](pgidx.png)
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Advanced PG indexing
+
+---
+
+```
+
+SELECT *
+FROM patient
+WHERE
+ resource @> $${
+  "gender": "female",
+  "active": true,
+  "identifier": [{"system":"mrn", "value": "000000013"}]}
+ }$$
+
+CREATE INDEX patient_jsonb_gin
+ON patient USING GIN (
+  resource jsonb_path_ops
+);
+
+
+```
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### fhirbase/aidbox
+
+---
+
+* indixing in db (10 times faster)
+* search without indices
+* any element any resource
+* more space for optimization
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### SQL on FHIR
+---
+
+* FHIR search is not enough
+* [Analytics on FHIR](https://chat.fhir.org/#narrow/stream/179219-analytics-on.20FHIR)
+
+---
+
+[Draft Spec](https://github.com/FHIR/sql-on-fhir/blob/master/sql-on-fhir.md)
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Solutions
+
+---
+* [bunsen: Spark SQL](https://engineering.cerner.com/bunsen/0.4.6/)
+* [BigQuery on FHIR](https://cloud.google.com/healthcare/docs/how-tos/fhir-export-bigquery)
+* [fhirbase: PostgreSQL](https://https://www.health-samurai.io/fhirbase)
+
+</script></section>
 
 <section data-markdown><script type="text/template" >
 ### Storage format
-
+---
 * references 
 * union | polymorpic
 * extensions 
 
 </script></section>
 
-<section data-markdown><script type="text/template" >
-### Search
-</script></section>
-
-<section data-markdown><script type="text/template" >
-### Search by Params
-</script></section>
-
-<section data-markdown><script type="text/template" >
-### Search by code
-</script></section>
-
-<section data-markdown><script type="text/template" >
-### Search by string
-</script></section>
-
-<section data-markdown><script type="text/template" >
-### Search by date
-</script></section>
-
-<section data-markdown><script type="text/template" >
-### Chained
-</script></section>
-
-<section data-markdown><script type="text/template" >
-### Indices
-</script></section>
 
 <section data-markdown><script type="text/template">
 ## Thx
@@ -179,7 +496,7 @@ How to store & query FHIR resources?
 				history: true,
 				center: true,
 
-				transition: 'slide', // none/fade/slide/convex/concave/zoom
+				transition: 'convex', // none/fade/slide/convex/concave/zoom
 
 				// More info https://github.com/hakimel/reveal.js#dependencies
 				dependencies: [
