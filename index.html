@@ -31,6 +31,28 @@
     <style>
      h1, h2, h3 { color: #ea4a35!important; }
      .reveal section img { background: white; border: none; box-shadow: none; }
+     hr {
+      border-color: #e94a35;
+      background-color: #e94a35;
+      height: 0px
+     }
+     #logo {
+       position: absolute;
+       top: 60px;
+       right: 60px;
+       height: 60px;
+       z-index: 1000;
+     }
+
+.reveal .controls .navigate-left, .reveal .controls .navigate-left.enabled
+{
+    border-right-color: #e94a35;
+}
+.reveal .controls .navigate-right, .reveal .controls .navigate-right.enabled
+
+{
+    border-left-color: #e94a35;
+}
       </style>
 
 		<!--[if lt IE 9]>
@@ -39,6 +61,7 @@
 	</head>
 
 	<body>
+  <img id="logo" src="health-samurai.png"></img>
 
 		<div class="reveal">
 			<div class="slides">
@@ -52,6 +75,26 @@
 Nikolai Ryzhikov @ Health Samurai
 
 @niquola (tw, gm, gh)
+
+</script></section>
+
+<section>
+
+<img style="height: 100px;" src="health-samurai.png"/>
+
+<h4 style="color: #555; font-family: 'Gotham Pro',Arial,sans-serif; font-size: 44px; margin: 60px 0;">
+Let's implement your<br/> ideas in FHIR
+</h4>
+
+<style>
+ .prods img {
+    display: inline-blocks;
+ }
+</style>
+<div class="prods">
+  <img style="height: 33px; margin-right: 60px" src="aidbox.svg"/>
+  <img src="fb.svg"/>
+</div>
 
 </script></section>
 
@@ -102,7 +145,6 @@ CREATE TABLE patient_communication (pid, ...);
 .....
 
 ```
----
 
 Normal form?  > 1000 tables 
 </script></section>
@@ -127,8 +169,9 @@ SELECT *
   .....
 
 ```
----
+
 DBs 10x inserts and joins
+
 
 </script></section>
 
@@ -137,21 +180,40 @@ DBs 10x inserts and joins
 
 ---
 
+Grahame's Server, HAPI JPA, Vonk, MS FHIR
+
 ```
-create table resource (id, resource blob,...);
+CREATE TABLE resource (
+  id,
+  resource blob,
+  ...
+);
+
 create table string_idx(res_id, value, ...);
 create table date_idx(res_id, value, ...);
 create table token_idx(res_id, value, ...);
 ```
----
 
-Grahame's Server, HAPI JPA, Vonk, MS FHIR
+
+
 
 </script></section>
 
 <section data-markdown><script type="text/template" >
-### Search Params
+### FHIR Search
 ---
+
+```
+GET /Patient?name=john&birthdate=lt1980&active=true
+```
+
+![](sp.png)
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### FHIR Search
+----
 
 ```yaml
 resourceType: "SearchParameter"
@@ -159,36 +221,7 @@ id: "Patient.phone"
 name: "phone"
 type: "token"
 expression: "Patient.telecom.where(system='phone')"
-
 ```
-
----
-[Patient Search Params](https://www.hl7.org/fhir/patient.html#search)
-
-</script></section>
-
-<section data-markdown><script type="text/template" >
-### How FHIR search works
-----
-
-```
-filter: r in resources
-   every: sp in search-params
-     extract(r, sp.expr) op val
-
-```
-
-</script></section>
-
-<section data-markdown><script type="text/template" >
-
-### Materilized Indexing
----
-
-1. write resource blob
-2. eval search param
-3. write sp table
-4. build db idx
 
 </script></section>
 
@@ -289,7 +322,6 @@ db.Patient.find( {
      $or: [ { birthDate: { $lt: 1980 } } ]
 })
 ```
---- 
 
 Search in db
 </script></section>
@@ -313,21 +345,8 @@ Search in db
 * transactional interity
 * query expressivenes (SQL)
 
----
 
 but it's changing
-
-</script></section>
-
-<section data-markdown><script type="text/template" >
-### Hybride: JSON + SQL
----
-
-best of both worlds
-
----
-
-JSON path in latest [SQL standard](https://obartunov.livejournal.com/200076.html)
 
 </script></section>
 
@@ -336,9 +355,11 @@ JSON path in latest [SQL standard](https://obartunov.livejournal.com/200076.html
 
 ---
 
-* PostgreSQL only
-* JSONB
-* Functional Indexes
+hybrid approach: doc + sql
+
+* Use JSONB
+* Search on db layer
+* Get the best from PostgreSQL
 
 </script></section>
 
@@ -361,6 +382,8 @@ CREATE TABLE encounter (
 );
 ```
 
+table per resource type
+
 </script></section>
 
 <section data-markdown><script type="text/template" >
@@ -376,7 +399,7 @@ WHERE
   AND extract(res, 'identifier.where(system = "mrn"))' = '1234'
 
 ```
----
+
 search expressions in db
 </script></section>
 
@@ -391,11 +414,8 @@ ON patient GIN (
   extract(resource, 'identifier.where(system = "mrn"))'
 );
 ```
----
 
-* jsonknife
-* jsquery
-* fhirpath.pg (beta)
+pg ext: jsonknife, jsquery, fhirpath.pg (beta)
 
 </script></section>
 
@@ -438,16 +458,17 @@ ON patient USING GIN (
 
 ---
 
-* indexing in db (10 times faster)
-* search without indices
-* any element any resource
+* indexing in db (up 10 times faster)
+* search any element any resource
 * more space for optimization
 * SQL as second API
 
 </script></section>
 
 <section data-markdown><script type="text/template" >
-### JSONpath in SQL standard
+### fhirbase for other dbs
+
+JSONpath in SQL standard
 
 ----
 * Oracle
@@ -464,6 +485,22 @@ ON patient USING GIN (
 * [SQL on FHIR](https://github.com/FHIR/sql-on-fhir/blob/master/sql-on-fhir.md)
 * [Analytics on FHIR](https://chat.fhir.org/#narrow/stream/179219-analytics-on.20FHIR)
 
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### SQL on FHIR
+---
+
+```
+SELECT subject.reference,
+       AVG(value.quantity.value) avg_hdl
+FROM observation o,
+     UNNEST(o.code.coding) c
+WHERE c.system = 'http://loinc.org' AND
+      c.code = '2085-9' AND
+      o.effective.datetime > '2017'
+GROUP BY subject.reference
+```
 </script></section>
 
 <section data-markdown><script type="text/template" >
@@ -485,34 +522,24 @@ ON patient USING GIN (
 
 </script></section>
 
-<section data-markdown><script type="text/template" >
-### SQL on FHIR
----
-
-```
-SELECT subject.reference,
-       AVG(value.quantity.value) avg_hdl
-FROM observation o,
-     UNNEST(o.code.coding) c
-WHERE c.system = 'http://loinc.org' AND
-      c.code = '2085-9' AND
-      o.effective.datetime > '2017'
-GROUP BY subject.reference
-```
-</script></section>
 
 <section data-markdown><script type="text/template" >
-### fhirbase demo
+### Getting Started
 ---
 
-https://fbdemo.aidbox.app/
+[SQL on FHIR tutorials](https://github.com/fhir-fuel/fhir-storage-and-analytics-track)
 
--- or --
 
-https://aidbox.app
+
+[fhirbase online](https://fbdemo.aidbox.app/) ||  [aidbox online](https://fbdemo.aidbox.app/)
 
 </script></section>
 
+<section data-markdown><script type="text/template">
+## Welcome to
+
+## FHIR community!
+</script></section>
 
 <section data-markdown><script type="text/template">
 ## Thank you!
