@@ -395,10 +395,10 @@ ON patient GIN (
 
 * jsonknife
 * jsquery
-* jsnonpath
 * fhirpath.pg (betta)
 
 </script></section>
+
 
 <section data-markdown><script type="text/template" >
 
@@ -442,27 +442,35 @@ ON patient USING GIN (
 * search without indices
 * any element any resource
 * more space for optimization
+* SQL as second API
 
 </script></section>
 
 <section data-markdown><script type="text/template" >
-### SQL on FHIR
+### JSONpath in SQL standard
+
+----
+* Oracle
+* PostgreSQL
+* MSSQL
+* MySQL
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Analytics on FHIR
 ---
 
-* FHIR search is not enough
+* [SQL on FHIR](https://github.com/FHIR/sql-on-fhir/blob/master/sql-on-fhir.md)
 * [Analytics on FHIR](https://chat.fhir.org/#narrow/stream/179219-analytics-on.20FHIR)
 
----
-
-[SQL on FHIR Spec](https://github.com/FHIR/sql-on-fhir/blob/master/sql-on-fhir.md)
-
 </script></section>
 
 <section data-markdown><script type="text/template" >
-### Solutions
+### Implementations
 
 ---
-* [bunsen: Spark SQL](https://engineering.cerner.com/bunsen/0.4.6/)
+* [Bunsen: Spark SQL](https://engineering.cerner.com/bunsen/0.4.6/)
 * [BigQuery on FHIR](https://cloud.google.com/healthcare/docs/how-tos/fhir-export-bigquery)
 * [fhirbase: PostgreSQL](https://https://www.health-samurai.io/fhirbase)
 
@@ -475,6 +483,22 @@ ON patient USING GIN (
 * fixed choice types
 * first class extensions 
 
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### SQL on FHIR
+---
+
+```
+SELECT subject.reference,
+       AVG(value.quantity.value) avg_hdl
+FROM observation o,
+     UNNEST(o.code.coding) c
+WHERE c.system = 'http://loinc.org' AND
+      c.code = '2085-9' AND
+      o.effective.datetime > '2017'
+GROUP BY subject.reference
+```
 </script></section>
 
 <section data-markdown><script type="text/template" >
