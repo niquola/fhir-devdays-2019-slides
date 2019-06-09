@@ -4,7 +4,7 @@
 	<head>
 		<meta charset="utf-8">
 
-		<title>fhir db</title>
+		<title>FHIR DBs</title>
 
 		<meta name="description" content="Slides for FHIR DevDays 2019; Redmond">
 		<meta name="author" content="Nikolai Ryzhikov">
@@ -387,6 +387,54 @@ table per resource type
 </script></section>
 
 <section data-markdown><script type="text/template" >
+### [JSONB in postgres](https://www.postgresql.org/docs/11/functions-json.html)
+
+---
+
+```
+SELECT
+ resource#>>'{name,0,given,0}' as first_name,
+ resource#>>'{name,0,family}' as last_name,
+ age(now(),(resource->>'birthDate')::timestamptz) as age
+ FROM patient
+```
+
+accessing elements
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Accessing elements
+
+---
+
+```
+SELECT
+ knife_extract(
+  resource,
+  '[["name","given"],["name","family"]]'
+ ) as knife,
+ FROM patient
+ LIMIT 10
+```
+
+json_knife
+</script></section>
+<section data-markdown><script type="text/template" >
+### FHIRPath in PG
+
+---
+
+```
+SELECT
+ fhirpath(resource, 'name.given | name.family') as fp,
+ FROM patient
+ LIMIT 10
+```
+
+fhirpath (alpha)
+</script></section>
+
+<section data-markdown><script type="text/template" >
 ### fhirbase/aidbox search
 
 ---
@@ -414,8 +462,6 @@ ON patient GIN (
   extract(resource, 'identifier.where(system = "mrn"))'
 );
 ```
-
-pg ext: jsonknife, jsquery, fhirpath.pg (beta)
 
 </script></section>
 
@@ -451,6 +497,33 @@ ON patient USING GIN (
 
 
 ```
+inclusion  operator
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### [jsquery](https://github.com/postgrespro/jsquery)
+
+---
+
+```
+
+SELECT *
+FROM patient
+WHERE
+ resource @@ $${
+   gender = 'female' and active = true,
+   identifier.#.(
+      system = 'mrn' 
+      and
+      value = '000000013'
+   )
+ }$$::jsquery
+
+```
+
+can be indexed with GIN & GIST
+
 </script></section>
 
 <section data-markdown><script type="text/template" >
@@ -461,7 +534,30 @@ ON patient USING GIN (
 * indexing in db (up 10 times faster)
 * search any element any resource
 * more space for optimization
-* SQL as second API
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### SQL as second API
+---
+
+```
+PUT /AidboxQuery/pts
+
+
+query: |
+  SELECT
+  resource#>>'{name,0,given,0}' as first_name,
+  resource#>>'{name,0,family}' as last_name,
+  age(now(),(resource->>'birthDate')::timestamptz) as age
+  FROM patient
+
+
+GET /$query/pts
+
+```
+
+parameters
 
 </script></section>
 
@@ -501,6 +597,7 @@ WHERE c.system = 'http://loinc.org' AND
       o.effective.datetime > '2017'
 GROUP BY subject.reference
 ```
+
 </script></section>
 
 <section data-markdown><script type="text/template" >
@@ -522,6 +619,38 @@ GROUP BY subject.reference
 
 </script></section>
 
+<section data-markdown><script type="text/template" >
+### References
+---
+```
+
+```
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Choice / Union
+---
+```
+
+```
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Extensions
+---
+```
+
+```
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Codings Idx
+---
+```
+
+```
+</script></section>
+
 
 <section data-markdown><script type="text/template" >
 ### Getting Started
@@ -529,16 +658,8 @@ GROUP BY subject.reference
 
 [SQL on FHIR tutorials](https://github.com/fhir-fuel/fhir-storage-and-analytics-track)
 
-
-
 [fhirbase online](https://fbdemo.aidbox.app/) ||  [aidbox online](https://fbdemo.aidbox.app/)
 
-</script></section>
-
-<section data-markdown><script type="text/template">
-## Welcome to
-
-## FHIR community!
 </script></section>
 
 <section data-markdown><script type="text/template">
