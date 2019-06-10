@@ -321,7 +321,7 @@ SORT BY d1.value
 
 ---
 
-* monogodb
+* mongodb
 * couchdb
 
 </script></section>
@@ -343,7 +343,7 @@ Search in db
 </script></section>
 
 <section data-markdown><script type="text/template" >
-### Document DBs +
+### Document DBs - Pros
 
 ---
 
@@ -353,7 +353,7 @@ Search in db
 </script></section>
 
 <section data-markdown><script type="text/template" >
-### Document DBs -
+### Document DBs - Cons
 
 ---
 
@@ -448,6 +448,23 @@ SELECT
 ```
 
 fhirpath (alpha)
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### fhirbase/aidbox search
+
+---
+
+```
+SELECT * FROM patient
+WHERE
+  [expr] [operator] [value]
+AND 
+  [expr] [operator] [value]
+```
+
+expr - extract elements from resource
+
 </script></section>
 
 <section data-markdown><script type="text/template" >
@@ -639,6 +656,15 @@ GROUP BY subject.reference
 ### References
 ---
 ```
+resourceType: 'Encounter'
+subject:
+  refernece: 'Patient/pt-1'
+-- to
+subject:
+  id: 'pt-1'
+  resourceType: 'Patient'
+  -- or
+  patient_id: 'pt-1'
 
 ```
 </script></section>
@@ -647,22 +673,32 @@ GROUP BY subject.reference
 ### Choice / Union
 ---
 ```
+resourceType: 'Observation'
+valueQuantity: ???
+--- to
+value:
+  Quantity:
+    value: 120
+    unit: 'mm Hg'
 
 ```
 </script></section>
 
 <section data-markdown><script type="text/template" >
-### Extensions
+### FC Extensions
 ---
 ```
-
-```
-</script></section>
-
-<section data-markdown><script type="text/template" >
-### Codings Idx
----
-```
+resourceType: 'Patient'
+extension:
+- extensionUrl: 'http://...../race'
+  extension:
+  - valueCoding:
+    extensionUrl: 'http://...../race-omb-category'
+    code: 'white'
+-- top
+race:
+  ombCategory:
+    code: 'White'
 
 ```
 </script></section>
