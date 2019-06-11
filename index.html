@@ -477,7 +477,7 @@ expr - extract elements from resource
 SELECT * FROM patient
 WHERE
   timestamp(res->>'birthDate') > '1950' 
-  AND timestamp(res->>'birthDate') > '1950' 
+  AND timestamp(res->>'birthDate') < '1952' 
   AND extract(res, 'identifier.where(system = "mrn"))' = '1234'
 
 ```
@@ -572,7 +572,7 @@ can be indexed with GIN & GIST
 </script></section>
 
 <section data-markdown><script type="text/template" >
-### SQL as second API
+### SQL in Aidbox
 ---
 
 ```
@@ -608,14 +608,6 @@ JSONpath in SQL standard
 
 </script></section>
 
-<section data-markdown><script type="text/template" >
-### Analytics on FHIR
----
-
-* [SQL on FHIR](https://github.com/FHIR/sql-on-fhir/blob/master/sql-on-fhir.md)
-* [Analytics on FHIR](https://chat.fhir.org/#narrow/stream/179219-analytics-on.20FHIR)
-
-</script></section>
 
 <section data-markdown><script type="text/template" >
 ### SQL on FHIR
@@ -718,6 +710,16 @@ race:
 <section data-markdown><script type="text/template" >
 
 ### SQL + FHIR =  ❤
+
+</script></section>
+
+<section data-markdown><script type="text/template" >
+### Analytics on FHIR
+---
+
+* [SQL on FHIR](https://github.com/FHIR/sql-on-fhir/blob/master/sql-on-fhir.md)
+* [Analytics on FHIR](https://chat.fhir.org/#narrow/stream/179219-analytics-on.20FHIR)
+* [Storage for FHIR](https://chat.fhir.org/#narrow/stream/179289-storage-for.20FHIR)
 
 </script></section>
 
